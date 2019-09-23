@@ -74,10 +74,18 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Mouse_Hook_Test.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Model\Hook.cs" />
     <Compile Include="Model\Keyboard_Hook.cs" />
+    <Compile Include="Model\Mouse_Hook.cs" />
+    <Compile Include="Mouse_Hook_Test.xaml.cs">
+      <DependentUpon>Mouse_Hook_Test.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

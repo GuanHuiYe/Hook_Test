@@ -14,19 +14,18 @@ namespace Hook_Test.Model
     /// 鍵盤鉤子
     /// [以下代碼來自某網友，並非本人原創]
     /// </summary>
-    class Keyboard_Hook:Hook
+    class Keyboard_Hook : Hook
     {
         private bool _keyboard_hook_handle = false;
         public bool keyboard_hook_handle { get { return _keyboard_hook_handle; } set { _keyboard_hook_handle = value; } }
 
         public event KeyEvent KeyDownEvent;
-        public event KeyEvent KeyPressEvent;
         public event KeyEvent KeyUpEvent;
 
         public delegate void KeyEvent(object sender, Key key);
 
         private static int hKeyboardHook = 0; //聲明鍵盤鉤子處理的初始值
-        public int keyboard_handler { get{return hKeyboardHook;}  }
+        public int keyboard_handler { get { return hKeyboardHook; } }
 
         //值在Microsoft SDK的Winuser.h裡查詢
         // http://www.bianceng.cn/Programming/csharp/201410/45484.htm
@@ -49,7 +48,7 @@ namespace Hook_Test.Model
 
         private bool is_global;
 
-        public bool Start(bool is_global=false)
+        public bool Start(bool is_global = false)
         {
             this.is_global = is_global;
             // 安裝鍵盤鉤子
@@ -57,7 +56,8 @@ namespace Hook_Test.Model
             {
                 KeyboardHookProcedure = new HookProc(KeyboardHookProc);
 
-                using (Process curProcess = Process.GetCurrentProcess()) {
+                using (Process curProcess = Process.GetCurrentProcess())
+                {
                     using (ProcessModule curModule = curProcess.MainModule)
                     {
                         if (is_global) hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookProcedure, GetModuleHandle(curModule.ModuleName), 0);
@@ -78,7 +78,7 @@ namespace Hook_Test.Model
         public bool Stop()
         {
             bool retKeyboard = true;
-            
+
             if (hKeyboardHook != 0)
             {
                 retKeyboard = UnhookWindowsHookEx(hKeyboardHook);
@@ -113,7 +113,7 @@ namespace Hook_Test.Model
         private int KeyboardHookProc(int nCode, Int32 wParam, IntPtr lParam)
         {
             // 偵聽鍵盤事件
-            if ((nCode >= 0) && (KeyDownEvent != null || KeyUpEvent != null || KeyPressEvent != null))
+            if ((nCode >= 0) && (KeyDownEvent != null || KeyUpEvent != null))
             {
                 if (is_global)
                 {
@@ -130,7 +130,8 @@ namespace Hook_Test.Model
                         KeyUpEvent(this, keyData);
                     }
                 }
-                else {
+                else
+                {
                     bool isPressed = (lParam.ToInt32() & 0x80000000) == 0;
 
                     Key keyData = KeyInterop.KeyFromVirtualKey(wParam);
@@ -147,7 +148,7 @@ namespace Hook_Test.Model
                         KeyUpEvent(this, keyData);
                     }
                 }
-              
+
 
             }
             //如果返回1，則結束消息，這個消息到此為止，不再傳遞。

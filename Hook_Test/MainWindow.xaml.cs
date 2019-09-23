@@ -29,5 +29,11 @@ namespace Hook_Test
             page_view.Children.Clear();
             page_view.Children.Add(new Keyboard_Hook_Test());
         }
+
+        private void page_mouse_hook_test(object sender, RoutedEventArgs e)
+        {
+            page_view.Children.Clear();
+            page_view.Children.Add(new Mouse_Hook_Test());
+        }
     }
 }

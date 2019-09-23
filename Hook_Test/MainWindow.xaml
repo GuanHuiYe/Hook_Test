@@ -15,7 +15,7 @@
                 </Style>
             </StackPanel.Resources>
             <Button Click="page_keyboard_hook_test">Keyboard Hook</Button>
-            <Button>Mouse Hook</Button>
+            <Button Click="page_mouse_hook_test">Mouse Hook</Button>
         </StackPanel>
         <Grid Grid.Column="1" Grid.ColumnSpan="10" Name="page_view" Margin="5,0,0,0"></Grid>
     </Grid>
