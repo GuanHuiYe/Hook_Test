@@ -38,7 +38,7 @@ namespace Hook_Test.Model
 
         //鍵盤結構
         [StructLayout(LayoutKind.Sequential)]
-        public class KeyboardHookStruct
+        public struct KeyboardHookStruct
         {
             public int vkCode;  //定一個虛擬鍵碼。該代碼必須有一個價值的范圍1至254
             public int scanCode; // 指定的硬件掃描碼的關鍵
@@ -47,9 +47,11 @@ namespace Hook_Test.Model
             public int dwExtraInfo; // 指定額外信息相關的信息
         }
 
+        private bool is_global;
 
         public bool Start(bool is_global=false)
         {
+            this.is_global = is_global;
             // 安裝鍵盤鉤子
             if (hKeyboardHook == 0)
             {
@@ -62,28 +64,6 @@ namespace Hook_Test.Model
                         else hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD, KeyboardHookProcedure, IntPtr.Zero, GetCurrentThreadId());
                     }
                 }
-
-              
-               
-                //hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookProcedure, Marshal.GetHINSTANCE(Assembly.GetExecutingAssembly().GetModules()[0]), 0);
-
-
-                //************************************
-                //鍵盤線程鉤子
-                //SetWindowsHookEx( 2,KeyboardHookProcedure, IntPtr.Zero, GetCurrentThreadId());//指定要監聽的線程idGetCurrentThreadId(),
-                //鍵盤全局鉤子,需要引用空間(using System.Reflection;)
-                //SetWindowsHookEx( 13,MouseHookProcedure,Marshal.GetHINSTANCE(Assembly.GetExecutingAssembly().GetModules()[0]),0);
-                //
-                //關於SetWindowsHookEx (int idHook, HookProc lpfn, IntPtr hInstance, int threadId)函數將鉤子加入到鉤子鏈表中，說明一下四個參數：
-                //idHook 鉤子類型，即確定鉤子監聽何種消息，上面的代碼中設為2，即監聽鍵盤消息並且是線程鉤子，如果是全局鉤子監聽鍵盤消息應設為13，
-                //線程鉤子監聽鼠標消息設為7，全局鉤子監聽鼠標消息設為14。lpfn 鉤子子程的地址指針。如果dwThreadId參數為0 或是一個由別的進程創建的
-                //線程的標識，lpfn必須指向DLL中的鉤子子程。 除此以外，lpfn可以指向當前進程的一段鉤子子程代碼。鉤子函數的入口地址，當鉤子鉤到任何
-                //消息後便調用這個函數。hInstance應用程序實例的句柄。標識包含lpfn所指的子程的DLL。如果threadId 標識當前進程創建的一個線程，而且子
-                //程代碼位於當前進程，hInstance必須為NULL。可以很簡單的設定其為本應用程序的實例句柄。threaded 與安裝的鉤子子程相關聯的線程的標識符
-                //如果為0，鉤子子程與所有的線程關聯，即為全局鉤子
-                //************************************
-                //如果SetWindowsHookEx失敗
-
 
                 if (hKeyboardHook == 0)
                 {
@@ -134,35 +114,40 @@ namespace Hook_Test.Model
         {
             // 偵聽鍵盤事件
             if ((nCode >= 0) && (KeyDownEvent != null || KeyUpEvent != null || KeyPressEvent != null))
-            {               
-                KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
-
-                Key keyData = KeyInterop.KeyFromVirtualKey(MyKeyboardHookStruct.vkCode);
-           
-                // raise KeyDown
-                if (KeyDownEvent != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN))
+            {
+                if (is_global)
                 {
-                    KeyDownEvent(this, keyData);
-                }
+                    KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
 
-                //鍵盤按下
-                if (KeyPressEvent != null && wParam == WM_KEYDOWN)
-                {
-                    byte[] keyState = new byte[256];
-                    GetKeyboardState(keyState);
+                    Key keyData = KeyInterop.KeyFromVirtualKey(MyKeyboardHookStruct.vkCode);
+                    if (KeyDownEvent != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN))
+                    {
+                        KeyDownEvent(this, keyData);
+                    }
 
-                    byte[] inBuffer = new byte[2];
-                    if (ToAscii(MyKeyboardHookStruct.vkCode, MyKeyboardHookStruct.scanCode, keyState, inBuffer, MyKeyboardHookStruct.flags) == 1)
-                    {                   
-                        KeyPressEvent(this, keyData);
+                    if (KeyUpEvent != null && (wParam == WM_KEYUP || wParam == WM_SYSKEYUP))
+                    {
+                        KeyUpEvent(this, keyData);
                     }
                 }
+                else {
+                    bool isPressed = (lParam.ToInt32() & 0x80000000) == 0;
 
-                // 鍵盤抬起
-                if (KeyUpEvent != null && (wParam == WM_KEYUP || wParam == WM_SYSKEYUP))
-                {                  
-                    KeyUpEvent(this, keyData);
+                    Key keyData = KeyInterop.KeyFromVirtualKey(wParam);
+
+
+                    if (KeyDownEvent != null && isPressed)
+                    {
+                        KeyDownEvent(this, keyData);
+                    }
+
+
+                    if (KeyUpEvent != null && !isPressed)
+                    {
+                        KeyUpEvent(this, keyData);
+                    }
                 }
+              
 
             }
             //如果返回1，則結束消息，這個消息到此為止，不再傳遞。

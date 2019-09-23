@@ -43,28 +43,31 @@ namespace Hook_Test
            
             if (keyboard_hook.keyboard_handler == 0)
             {
+               
                 set_hook_event();
                 display.Text += "設置 Local Hook " + (keyboard_hook.Start() ? "成功" : "失敗") + "!\r\n";
             }
             else
             {
-                keyboard_hook.Stop();
+                display.Text += "移除 Local Hook " + (keyboard_hook.Stop() ? "成功" : "失敗") + "!\r\n";
+                keyboard_hook = new Keyboard_Hook();
             }
             local_hook_btn.Content = keyboard_hook.keyboard_handler == 0 ? "設置 Local Hook" : "移除 Global Hook";
             global_hook_btn.IsEnabled = keyboard_hook.keyboard_handler == 0 ? true : false;
         }
 
         private void set_global_hook(object sender, RoutedEventArgs e)
-        {
-            Button btn = (Button)sender;
+        {        
             if (keyboard_hook.keyboard_handler == 0)
             {
+          
                 set_hook_event();
                 display.Text += "設置 Global Hook " + (keyboard_hook.Start(true) ? "成功" : "失敗") + "!\r\n";               
             }
             else
             {
                 display.Text += "移除 Global Hook " + (keyboard_hook.Stop() ? "成功" : "失敗") + "!\r\n";
+                keyboard_hook = new Keyboard_Hook();
             }
             global_hook_btn.Content = keyboard_hook.keyboard_handler == 0 ? "設置 Global Hook" : "移除 Global Hook";
             local_hook_btn.IsEnabled = keyboard_hook.keyboard_handler == 0 ? true :false ;
