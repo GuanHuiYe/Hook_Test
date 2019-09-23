@@ -39,10 +39,20 @@ namespace Hook_Test
             this.DataContext = mouse_status;
         }
 
+        private void double_click_hook(object sender, Mouse_Hook.MouseEventArgs mouse)
+        {
+            display.Text += "Double Click " + mouse.Button + "\r\n";
+        }
 
         private void set_hook_event()
         {
-            mouse_hook.GlobalMouseMove += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseDown += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseUp += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseClick += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseDoubleClick += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseDoubleClick += new Mouse_Hook.MouseEvent(double_click_hook);
+            mouse_hook.GlobalMouseWheel += new Mouse_Hook.MouseEvent(hook_event);
+            mouse_hook.GlobalMouseMove += new Mouse_Hook.MouseEvent(hook_event);           
         }
 
         private void set_local_hook(object sender, RoutedEventArgs e)

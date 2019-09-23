@@ -27,7 +27,7 @@ namespace Hook_Test.Model
         /// <summary>
         /// 當滑鼠按鍵連點兩次時引發此事件。
         /// </summary>
-        public static event MouseEvent GlobalMouseDoubleClick;
+        public event MouseEvent GlobalMouseDoubleClick;
         /// <summary>
         /// 當滑鼠滾輪滾動時引發此事件。
         /// </summary>
@@ -65,8 +65,15 @@ namespace Hook_Test.Model
                 {
                     using (ProcessModule curModule = curProcess.MainModule)
                     {
-                        HookProcedure = new HookProc(HookProc);
-                        _HookHandle = SetWindowsHookEx(WH_MOUSE_LL, HookProcedure, GetModuleHandle(curModule.ModuleName), 0);
+                        HookProcedure = new HookProc(Hook_Procedure);
+                        if (is_global)
+                        {
+                            _HookHandle = SetWindowsHookEx(WH_MOUSE_LL, HookProcedure, GetModuleHandle(curModule.ModuleName), 0);
+                        }
+                        else {
+                            _HookHandle = SetWindowsHookEx(WH_MOUSE, HookProcedure, IntPtr.Zero, GetCurrentThreadId());
+                        }
+                
 
                     }
                 }
@@ -74,6 +81,7 @@ namespace Hook_Test.Model
                 _DoubleClick_BackgroundWorker = new BackgroundWorker();
                 _DoubleClick_BackgroundWorker.WorkerSupportsCancellation = true;
                 _DoubleClick_BackgroundWorker.WorkerReportsProgress = true;
+
                 BackgroundWorker_Interval = GetDoubleClickTime();
                 _DoubleClick_BackgroundWorker.DoWork += new DoWorkEventHandler(DoubleClick_BackgroundWorkerDoWork);
                 _DoubleClick_BackgroundWorker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(DoubleClick_BackgroundWorkerElapsed);
@@ -153,7 +161,7 @@ namespace Hook_Test.Model
         /// 註冊Windows Hook時用到的委派方法，當全域事件發生時會執行這個方法，並提供全域事件資料。
         /// </summary>
 
-        private int HookProc(int nCode, Int32 wParam, IntPtr lParam)
+        private int Hook_Procedure(int nCode, Int32 wParam, IntPtr lParam)
         {
             MouseEventArgs e = null;
 
@@ -170,25 +178,25 @@ namespace Hook_Test.Model
                 e = new MouseEventArgs(wParam_Int32, mouseHookStruct.Point.X, mouseHookStruct.Point.Y, mouseDelta);
 
                 if (GlobalMouseWheel != null && wParam_Int32 == WM_MOUSEWHEEL)
-                    GlobalMouseWheel.Invoke(null, e);
+                    GlobalMouseWheel(this, e);
                 else if (GlobalMouseUp != null && (wParam_Int32 == WM_LBUTTONUP || wParam_Int32 == WM_RBUTTONUP || wParam_Int32 == WM_MBUTTONUP))
                 {
                     GlobalMouseUp.Invoke(null, e);
                     if (GlobalMouseClick != null && (mouseHookStruct.Point.X == m_LastBTDownX && mouseHookStruct.Point.Y == m_LastBTDownY))
-                        GlobalMouseClick.Invoke(null, e);
+                        GlobalMouseClick(this, e);
                 }
                 else if (GlobalMouseDown != null && (wParam_Int32 == WM_LBUTTONDOWN || wParam_Int32 == WM_RBUTTONDOWN || wParam_Int32 == WM_MBUTTONDOWN))
                 {
                     m_LastBTDownX = mouseHookStruct.Point.X;
                     m_LastBTDownY = mouseHookStruct.Point.Y;
-                    GlobalMouseDown.Invoke(null, e);
+                    GlobalMouseDown(this, e);
                 }
                 else if (GlobalMouseMove != null && (m_OldX != mouseHookStruct.Point.X || m_OldY != mouseHookStruct.Point.Y))
                 {
                     m_OldX = mouseHookStruct.Point.X;
                     m_OldY = mouseHookStruct.Point.Y;
                     if (GlobalMouseMove != null)
-                        GlobalMouseMove.Invoke(null, e);
+                        GlobalMouseMove(this, e);
                 }
             }
 
@@ -199,7 +207,7 @@ namespace Hook_Test.Model
 
         }
 
-        private static void OnMouseDown(object sender, MouseEventArgs e)
+        private void OnMouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button.Equals(_LastClickedButton))
             {
@@ -246,6 +254,17 @@ namespace Hook_Test.Model
             /// 取得滑鼠在產生滑鼠事件期間的 Y 座標。
             /// </summary>
             public int Y { get; private set; }
+
+            private bool _Handled;
+            /// <summary>
+            /// 取得或設定值，指出是否處理事件。
+            /// </summary>
+            public bool Handled
+            {
+                get { return _Handled; }
+                set { _Handled = value; }
+            }
+
             internal MouseEventArgs()
             {
                 Button = Buttons.None;
@@ -276,15 +295,7 @@ namespace Hook_Test.Model
                 this.Y = y;
                 this.Delta = delta;
             }
-            private bool _Handled;
-            /// <summary>
-            /// 取得或設定值，指出是否處理事件。
-            /// </summary>
-            public bool Handled
-            {
-                get { return _Handled; }
-                set { _Handled = value; }
-            }
+        
         }
 
 
