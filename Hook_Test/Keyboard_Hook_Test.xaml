@@ -21,8 +21,7 @@
             </WrapPanel.Resources>
             <Button Name="local_hook_btn"  Click="set_local_hook">設置 Local Hook</Button>
             <Button Name="global_hook_btn"  Click="set_global_hook">設置 Global Hook</Button>
-            <Button Click="handle_keyboard">設定 攔截不輸入鍵盤</Button>
-            <Button>設定 改變鍵盤位置</Button>
+            <Button Click="handle_keyboard">設定 攔截不輸入鍵盤</Button>        
             <Button Click="display_clear">清除 輸出視窗</Button>
         </WrapPanel>
         <Grid Grid.Row="1">
