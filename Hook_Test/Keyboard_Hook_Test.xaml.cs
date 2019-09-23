@@ -28,9 +28,9 @@ namespace Hook_Test
 
         Keyboard_Hook keyboard_hook = new Keyboard_Hook();
 
-        private void hook_KeyDown(object sender, Key key)
+        private void hook_KeyDown(object sender, Keyboard_Hook.KeyEventArgs e)
         {
-            display.Text += "press " + key + Environment.NewLine;
+            display.Text += "press " + e.Key + Environment.NewLine;
         }
 
         private void set_hook_event()

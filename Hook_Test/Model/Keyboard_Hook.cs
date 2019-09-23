@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define wpf
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +24,7 @@ namespace Hook_Test.Model
         public event KeyEvent KeyDownEvent;
         public event KeyEvent KeyUpEvent;
 
-        public delegate void KeyEvent(object sender, Key key);
+        public delegate void KeyEvent(object sender, KeyEventArgs e);
 
         private static int hKeyboardHook = 0; //聲明鍵盤鉤子處理的初始值
         public int keyboard_handler { get { return hKeyboardHook; } }
@@ -39,11 +41,11 @@ namespace Hook_Test.Model
         [StructLayout(LayoutKind.Sequential)]
         public struct KeyboardHookStruct
         {
-            public int vkCode;  //定一個虛擬鍵碼。該代碼必須有一個價值的范圍1至254
-            public int scanCode; // 指定的硬件掃描碼的關鍵
-            public int flags;  // 鍵標志
-            public int time; // 指定的時間戳記的這個訊息
-            public int dwExtraInfo; // 指定額外信息相關的信息
+            public int VirtualKeyCode;
+            public int ScanCode;
+            public int Flags;
+            public int Time;
+            public int ExtraInfo;
         }
 
         private bool is_global;
@@ -112,50 +114,134 @@ namespace Hook_Test.Model
 
         private int KeyboardHookProc(int nCode, Int32 wParam, IntPtr lParam)
         {
-            // 偵聽鍵盤事件
-            if ((nCode >= 0) && (KeyDownEvent != null || KeyUpEvent != null))
+
+            KeyEventArgs e = null;
+            if (is_global)
+
             {
-                if (is_global)
+                int wParam_Int32 = Convert.ToInt32(wParam);
+                if (nCode >= 0)
                 {
-                    KeyboardHookStruct MyKeyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
-
-                    Key keyData = KeyInterop.KeyFromVirtualKey(MyKeyboardHookStruct.vkCode);
-                    if (KeyDownEvent != null && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN))
+                    KeyboardHookStruct keyboardHookStruct = (KeyboardHookStruct)Marshal.PtrToStructure(lParam, typeof(KeyboardHookStruct));
+                    if (KeyDownEvent != null && (wParam_Int32 == WM_KEYDOWN || wParam_Int32 == WM_SYSKEYDOWN))
                     {
-                        KeyDownEvent(this, keyData);
+                        e = new KeyEventArgs(keyboardHookStruct.VirtualKeyCode);
+                        KeyDownEvent(null, e);
                     }
-
-                    if (KeyUpEvent != null && (wParam == WM_KEYUP || wParam == WM_SYSKEYUP))
+                    else if (KeyUpEvent != null && (wParam_Int32 == WM_KEYUP || wParam_Int32 == WM_SYSKEYUP))
                     {
-                        KeyUpEvent(this, keyData);
-                    }
-                }
-                else
-                {
-                    bool isPressed = (lParam.ToInt32() & 0x80000000) == 0;
-
-                    Key keyData = KeyInterop.KeyFromVirtualKey(wParam);
-
-
-                    if (KeyDownEvent != null && isPressed)
-                    {
-                        KeyDownEvent(this, keyData);
-                    }
-
-
-                    if (KeyUpEvent != null && !isPressed)
-                    {
-                        KeyUpEvent(this, keyData);
+                        e = new KeyEventArgs(keyboardHookStruct.VirtualKeyCode);
+                        KeyUpEvent(null, e);
                     }
                 }
 
 
             }
-            //如果返回1，則結束消息，這個消息到此為止，不再傳遞。
-            //如果返回0或調用CallNextHookEx函數則消息出了這個鉤子繼續往下傳遞，也就是傳給消息真正的接受者
-            if (keyboard_hook_handle) return 1;
-            else return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+            else
+            {
+                e = new KeyEventArgs(wParam);
+
+                // 當按鍵按下及鬆開時都會觸發此函式，這裡只處理鍵盤按下的情形。
+                bool isPressed = (lParam.ToInt32() & 0x80000000) == 0;
+
+                if (nCode >= 0)
+                {
+                    if (KeyDownEvent != null && isPressed) KeyDownEvent(null, e);
+                    else if (KeyUpEvent != null && !isPressed) KeyUpEvent(null, e);
+                }
+
+            }
+
+            if (keyboard_hook_handle || (e != null && e.Handled)) return -1;
+            return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
         }
+
+        /// <summary>
+        /// 提供 GlobalKeyDown 或 GlobalKeyUp 事件的資料。
+        /// </summary>
+        public class KeyEventArgs : EventArgs
+        {
+            /// <summary>
+            /// 取得或設定值，指出是否處理事件。
+            /// </summary>
+            public bool Handled { get; set; }
+#if !wpf
+            /// <summary>
+            /// 取得值，虛擬鍵盤碼的System.Windows.Forms.Keys表示。
+            /// </summary>
+            public System.Windows.Forms.Keys Keys { get { return (System.Windows.Forms.Keys)VirtualKeyCode; } }
+#endif
+            /// <summary>
+            /// 取得值，虛擬鍵盤碼的System.Windows.Input.Key表示。
+            /// </summary>
+            public System.Windows.Input.Key Key { get { return System.Windows.Input.KeyInterop.KeyFromVirtualKey(VirtualKeyCode); } }
+            /// <summary>
+            /// 取得值，指出是否按下 ALT 鍵。
+            /// </summary>
+            public bool Alt
+            {
+                get
+                {
+#if wpf
+                    return KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.LeftAlt)) || KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.RightAlt));
+#else
+                     return KeyIsDown((int)System.Windows.Forms.Keys.LMenu) || KeyIsDown((int)System.Windows.Forms.Keys.RMenu);
+#endif
+
+
+                }
+
+            }
+            /// <summary>
+            /// 取得值，指出是否按下 CTRL 鍵。
+            /// </summary>
+            public bool Control
+            {
+                get
+                {
+#if wpf
+                    return KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.LeftCtrl)) || KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.RightCtrl));
+#else
+        return KeyIsDown((int)System.Windows.Forms.Keys.LControlKey) || KeyIsDown((int)System.Windows.Forms.Keys.RControlKey);                     
+#endif
+
+
+                }
+            }
+            /// <summary>
+            /// 取得值，指出是否按下 SHIFT 鍵。
+            /// </summary>
+            public bool Shift
+            {
+                get
+                {
+#if wpf
+                    return KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.LeftShift)) || KeyIsDown((int)KeyInterop.VirtualKeyFromKey(Key.RightShift));
+#else
+              return KeyIsDown((int)System.Windows.Forms.Keys.LShiftKey) || KeyIsDown((int)System.Windows.Forms.Keys.RShiftKey);                
+#endif
+
+                }
+            }
+            /// <summary>
+            /// 取得值，引發事件的虛擬鍵盤碼。
+            /// </summary>
+            public int VirtualKeyCode { get; private set; }
+            internal KeyEventArgs(int virtualKey)
+            {
+                this.Handled = false;
+                this.VirtualKeyCode = virtualKey;
+            }
+
+            private static bool KeyIsDown(int KeyCode)
+            {
+                if ((GetKeyState(KeyCode) & 0x80) == 0x80)
+                    return true;
+                else
+                    return false;
+            }
+        }
+
         ~Keyboard_Hook()
         {
             Stop();

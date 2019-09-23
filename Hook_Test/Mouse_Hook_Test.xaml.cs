@@ -69,7 +69,7 @@ namespace Hook_Test
                 display.Text += "移除 Local Hook " + (mouse_hook.Stop() ? "成功" : "失敗") + "!\r\n";
                 mouse_hook = new Mouse_Hook();
             }
-            local_hook_btn.Content = mouse_hook.HookHandle == 0 ? "設置 Local Hook" : "移除 Global Hook";
+            local_hook_btn.Content = mouse_hook.HookHandle == 0 ? "設置 Local Hook" : "移除 Local Hook";
             global_hook_btn.IsEnabled = mouse_hook.HookHandle == 0 ? true : false;
         }
 
